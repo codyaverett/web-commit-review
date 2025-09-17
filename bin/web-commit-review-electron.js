@@ -18,7 +18,7 @@ program
   .description('Web-based git commit review tool (Electron version)')
   .version(packageJson.version)
   .option('-d, --dir <path>', 'Target project directory', process.cwd())
-  .option('-u, --url <url>', 'Initial demo URL to load in preview', 'http://localhost:5173')
+  .option('-u, --url <url>', 'Initial demo URL to load in preview')
   .option('-p, --port <port>', 'Port for the review tool server', '3000')
   .option('-s, --startup <command>', 'NPM script or command to run on startup (e.g., "npm run dev")')
   .option('-w, --worktree', 'Create a temporary git worktree', false)
@@ -27,6 +27,14 @@ program
   .parse();
 
 const options = program.opts();
+
+// Resolve the directory path (handles both relative and absolute paths)
+options.dir = path.resolve(options.dir);
+
+// Set default URL with port if not provided
+if (!options.url) {
+  options.url = `http://localhost:${options.port}`;
+}
 
 // If browser flag is set, use the original CLI
 if (options.browser) {
@@ -50,6 +58,7 @@ if (options.browser) {
   electronArgs.push('-d', options.dir);
   if (options.url) electronArgs.push('-u', options.url);
   if (options.port) electronArgs.push('-p', options.port);
+  if (options.startup) electronArgs.push('-s', options.startup);
   if (options.verbose) electronArgs.push('--verbose');
   
   console.log(chalk.bold.cyan(`
@@ -64,6 +73,7 @@ if (options.browser) {
   console.log(chalk.gray('Port:       '), chalk.white(options.port));
   console.log(chalk.gray('Directory:  '), chalk.white(options.dir));
   console.log(chalk.gray('Demo URL:   '), chalk.white(options.url));
+  console.log(chalk.gray('Startup:    '), chalk.white(options.startup || 'none'));
   console.log(chalk.gray('Verbose:    '), chalk.white(options.verbose));
   console.log(chalk.gray('───────────────────────────────\n'));
   

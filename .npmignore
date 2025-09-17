@@ -1,0 +1,92 @@
+# Development files
+src/
+node_modules/
+*.log
+*.pid
+*.pid.lock
+*.seed
+*.tgz
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.js
+*.spec.js
+coverage/
+.nyc_output/
+
+# Build tools
+.eslintrc*
+.prettierrc*
+.babelrc*
+webpack.config.js
+rollup.config.js
+tsconfig.json
+vite.config.js
+.husky/
+
+# Documentation source
+docs/
+*.md
+!README.md
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+azure-pipelines.yml
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.bak
+*~
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.cache/
+
+# Package manager files
+yarn.lock
+pnpm-lock.yaml
+package-lock.json
+!npm-shrinkwrap.json
+
+# Development directories
+examples/
+demo/
+playground/
+
+# Config files not needed for runtime
+.editorconfig
+.nvmrc
+.node-version
+
+# Build artifacts not for distribution
+dist/
+build/
+out/
+
+# Keep only necessary web files
+!public/css/
+!public/js/
+!public/index.html

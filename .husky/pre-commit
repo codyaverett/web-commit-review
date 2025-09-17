@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Run lint-staged for linting and formatting
+npx lint-staged
+
+# Run build to ensure the project builds successfully
+echo "Running build check..."
+pnpm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Please fix build errors before committing."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"

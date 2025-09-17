@@ -1,0 +1,3 @@
+# Files to skip during commit traversal
+electron/toolbar.html
+electron/main.cjs

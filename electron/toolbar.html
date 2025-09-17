@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>UI Review Tool</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Helvetica, Arial, sans-serif;
+                height: 100vh;
+                background: #1e1e1e;
+                overflow: hidden;
+            }
+
+            .toolbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 8px 16px;
+                background: linear-gradient(to bottom, #2d2d30, #252526);
+                border-bottom: 1px solid #3e3e42;
+                user-select: none;
+                -webkit-app-region: drag;
+                height: 48px;
+                z-index: 2000;
+            }
+
+            .toolbar > * {
+                -webkit-app-region: no-drag;
+            }
+
+            .branch-section {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-left: 70px;
+            }
+
+            .commit-section {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 0 12px;
+                border-left: 1px solid #3e3e42;
+            }
+
+            .section-label {
+                color: #cccccc;
+                font-size: 13px;
+                font-weight: 500;
+            }
+
+            .branch-selector,
+            .commit-selector {
+                position: relative;
+            }
+
+            .branch-display,
+            .commit-display {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 12px;
+                background: #3c3c3c;
+                border: 1px solid #464647;
+                border-radius: 4px;
+                color: #e1e1e1;
+                font-size: 13px;
+                cursor: pointer;
+                min-width: 150px;
+                max-width: 250px;
+                transition: all 0.2s ease;
+            }
+
+            .commit-display {
+                width: 200px;
+                min-width: 200px;
+                max-width: 200px;
+            }
+
+            .branch-display:hover,
+            .commit-display:hover {
+                background: #464647;
+                border-color: #5a5a5c;
+            }
+
+            .branch-icon {
+                width: 14px;
+                height: 14px;
+                fill: #cccccc;
+            }
+
+            .commit-hash {
+                font-family: "Consolas", "Monaco", monospace;
+                background: #464647;
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-size: 11px;
+                color: #4ec9b0;
+                flex-shrink: 0;
+            }
+
+            .commit-message {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                margin-top: 4px;
+                background: #2d2d30;
+                border: 1px solid #464647;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                display: none;
+                z-index: 3000;
+                min-width: 300px;
+                max-height: calc(100vh - 60px);
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            .dropdown.show {
+                display: block;
+            }
+
+            .dropdown::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .dropdown::-webkit-scrollbar-track {
+                background: #2d2d30;
+                border-radius: 4px;
+            }
+
+            .dropdown::-webkit-scrollbar-thumb {
+                background: #464647;
+                border-radius: 4px;
+            }
+
+            .dropdown::-webkit-scrollbar-thumb:hover {
+                background: #5a5a5c;
+            }
+
+            .dropdown-item {
+                padding: 8px 12px;
+                color: #cccccc;
+                font-size: 13px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: background 0.2s ease;
+            }
+
+            .dropdown-item:hover {
+                background: #3c3c3c;
+            }
+
+            .dropdown-item.current {
+                color: #4ec9b0;
+                font-weight: 500;
+            }
+
+            .commit-nav-buttons {
+                display: flex;
+                gap: 4px;
+            }
+
+            .commit-nav-button {
+                width: 28px;
+                height: 28px;
+                background: #3c3c3c;
+                border: 1px solid #464647;
+                border-radius: 4px;
+                color: #cccccc;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s ease;
+            }
+
+            .commit-nav-button:hover:not(:disabled) {
+                background: #464647;
+                border-color: #5a5a5c;
+            }
+
+            .commit-nav-button:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            .navigation-controls {
+                display: flex;
+                gap: 4px;
+            }
+
+            .nav-button {
+                width: 28px;
+                height: 28px;
+                background: #3c3c3c;
+                border: 1px solid #464647;
+                border-radius: 4px;
+                color: #cccccc;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s ease;
+            }
+
+            .nav-button:hover:not(:disabled) {
+                background: #464647;
+                border-color: #5a5a5c;
+            }
+
+            .nav-button:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            .nav-button svg,
+            .commit-nav-button svg {
+                width: 16px;
+                height: 16px;
+                fill: currentColor;
+            }
+
+            .url-bar {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: #3c3c3c;
+                border: 1px solid #464647;
+                border-radius: 4px;
+                padding: 0 8px;
+                height: 32px;
+            }
+
+            .url-input {
+                flex: 1;
+                background: none;
+                border: none;
+                color: #e1e1e1;
+                font-size: 13px;
+                outline: none;
+            }
+
+            .url-input::placeholder {
+                color: #808080;
+            }
+
+            .refresh-button {
+                background: none;
+                border: none;
+                color: #cccccc;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 4px;
+                border-radius: 4px;
+                transition: background 0.2s ease;
+            }
+
+            .refresh-button:hover {
+                background: #464647;
+            }
+
+            .refresh-button svg {
+                width: 16px;
+                height: 16px;
+                fill: currentColor;
+            }
+
+            .refresh-button.spinning svg {
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg);
+                }
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .content-area {
+                position: fixed;
+                top: 48px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                display: flex;
+                overflow: hidden;
+            }
+
+            .sidebar {
+                width: 350px;
+                background: #252526;
+                border-right: 1px solid #3e3e42;
+                display: flex;
+                flex-direction: column;
+                transition: transform 0.3s ease;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            .sidebar.hidden {
+                transform: translateX(-100%);
+                margin-right: -350px;
+            }
+
+            .sidebar-header {
+                padding: 12px 16px;
+                background: #2d2d30;
+                border-bottom: 1px solid #3e3e42;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .sidebar-title {
+                color: #e1e1e1;
+                font-size: 14px;
+                font-weight: 500;
+            }
+
+            .sidebar-toggle {
+                width: 24px;
+                height: 24px;
+                background: #3c3c3c;
+                border: 1px solid #464647;
+                border-radius: 4px;
+                color: #cccccc;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s ease;
+            }
+
+            .sidebar-toggle:hover {
+                background: #464647;
+            }
+
+            .sidebar-content {
+                flex: 1;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 16px;
+                height: 100%;
+            }
+
+            .commit-info {
+                color: #cccccc;
+                font-size: 13px;
+                line-height: 1.6;
+            }
+
+            .commit-info-section {
+                margin-bottom: 20px;
+            }
+
+            .commit-info-label {
+                color: #808080;
+                font-size: 11px;
+                text-transform: uppercase;
+                margin-bottom: 4px;
+            }
+
+            .commit-info-value {
+                color: #e1e1e1;
+            }
+
+            .commit-hash-full {
+                font-family: "Consolas", "Monaco", monospace;
+                background: #3c3c3c;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                color: #4ec9b0;
+                word-break: break-all;
+            }
+
+            .commit-files {
+                margin-top: 12px;
+            }
+
+            .file-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 4px 0;
+                font-size: 12px;
+            }
+
+            .file-status {
+                width: 20px;
+                height: 20px;
+                border-radius: 3px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 11px;
+            }
+
+            .file-status.added {
+                background: #2ea043;
+                color: white;
+            }
+
+            .file-status.modified {
+                background: #fb8500;
+                color: white;
+            }
+
+            .file-status.deleted {
+                background: #da3633;
+                color: white;
+            }
+
+            .file-path {
+                color: #cccccc;
+                font-family: "Consolas", "Monaco", monospace;
+            }
+
+            .webview-container {
+                flex: 1;
+                position: relative;
+                background: #ffffff;
+            }
+
+            webview {
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
+
+            .loading-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(30, 30, 30, 0.9);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+
+            .loading-overlay.show {
+                display: flex;
+            }
+
+            .loading-spinner {
+                width: 40px;
+                height: 40px;
+                border: 3px solid #464647;
+                border-top-color: #4ec9b0;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+
+            .status-message {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #2d2d30;
+                color: #e1e1e1;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 13px;
+                display: none;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                z-index: 1001;
+            }
+
+            .status-message.show {
+                display: block;
+            }
+
+            .toggle-sidebar-float {
+                position: absolute;
+                left: 10px;
+                top: 10px;
+                width: 32px;
+                height: 32px;
+                background: #2d2d30;
+                border: 1px solid #464647;
+                border-radius: 4px;
+                color: #cccccc;
+                cursor: pointer;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 100;
+                transition: all 0.2s ease;
+            }
+
+            .toggle-sidebar-float:hover {
+                background: #3c3c3c;
+            }
+
+            .sidebar.hidden ~ .webview-container .toggle-sidebar-float {
+                display: flex;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="toolbar">
+            <div class="branch-section">
+                <span class="section-label">Branch:</span>
+                <div class="branch-selector">
+                    <div class="branch-display" id="branchDisplay">
+                        <svg class="branch-icon" viewBox="0 0 16 16">
+                            <path
+                                d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1 1 0 00-1 1v1.128a2.251 2.251 0 11-1.5 0V5.372a2.25 2.25 0 111.5 0v1.836A2.492 2.492 0 016 7h4a1 1 0 001-1v-.628A2.25 2.25 0 019.5 3.25zM4.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zM3.5 3.25a.75.75 0 111.5 0 .75.75 0 01-1.5 0z"
+                            />
+                        </svg>
+                        <span id="currentBranch">Loading...</span>
+                        <svg
+                            style="margin-left: auto; width: 12px; height: 12px"
+                            viewBox="0 0 12 12"
+                        >
+                            <path d="M6 8L2 4h8z" fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="dropdown" id="branchDropdown"></div>
+                </div>
+            </div>
+
+            <div class="commit-section">
+                <span class="section-label">Commit:</span>
+                <div class="commit-nav-buttons">
+                    <button
+                        class="commit-nav-button"
+                        id="prevCommitBtn"
+                        title="Previous commit"
+                    >
+                        <svg viewBox="0 0 16 16">
+                            <path d="M10 13l-5-5 5-5v10z" />
+                        </svg>
+                    </button>
+                    <button
+                        class="commit-nav-button"
+                        id="nextCommitBtn"
+                        title="Next commit"
+                    >
+                        <svg viewBox="0 0 16 16">
+                            <path d="M6 13l5-5-5-5v10z" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="commit-selector">
+                    <div class="commit-display" id="commitDisplay">
+                        <span class="commit-hash" id="currentCommitHash"
+                            >Loading...</span
+                        >
+                        <span class="commit-message" id="currentCommitMessage"
+                            >Loading commit...</span
+                        >
+                        <svg
+                            style="margin-left: auto; width: 12px; height: 12px"
+                            viewBox="0 0 12 12"
+                        >
+                            <path d="M6 8L2 4h8z" fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="dropdown" id="commitDropdown"></div>
+                </div>
+            </div>
+
+            <div class="navigation-controls">
+                <button class="nav-button" id="backBtn" disabled>
+                    <svg viewBox="0 0 16 16">
+                        <path d="M10 13l-5-5 5-5v10z" />
+                    </svg>
+                </button>
+                <button class="nav-button" id="forwardBtn" disabled>
+                    <svg viewBox="0 0 16 16">
+                        <path d="M6 13l5-5-5-5v10z" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="url-bar">
+                <input
+                    type="text"
+                    class="url-input"
+                    id="urlInput"
+                    placeholder="http://localhost:5173"
+                    value="http://localhost:5173"
+                />
+                <button class="refresh-button" id="refreshBtn">
+                    <svg viewBox="0 0 16 16">
+                        <path
+                            d="M13.65 5.026a5.5 5.5 0 10-.426 6.024l-.949-.55a4.5 4.5 0 11.35-4.924l-1.078.008-.005 1 2.537-.013.013-2.537-1 .006-.042 1.08a5.474 5.474 0 00-.4-.094z"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">Commit Details</span>
+                    <button class="sidebar-toggle" id="sidebarToggle">
+                        <svg viewBox="0 0 16 16" width="16" height="16">
+                            <path d="M13 14L3 7l10-7z" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="sidebar-content" id="sidebarContent">
+                    <div class="commit-info" id="commitInfo">
+                        <p style="color: #808080">
+                            Select a commit to view details
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="webview-container">
+                <button class="toggle-sidebar-float" id="toggleSidebarFloat">
+                    <svg viewBox="0 0 16 16" width="16" height="16">
+                        <path d="M3 14l10-7L3 0z" />
+                    </svg>
+                </button>
+                <webview
+                    id="webview"
+                    src="http://localhost:5173"
+                    partition="persist:main"
+                ></webview>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="loading-spinner"></div>
+                </div>
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+        </div>
+
+        <script src="toolbar.cjs"></script>
+    </body>
+</html>

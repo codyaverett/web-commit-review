@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Commit Review Tool</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Toolbar -->
+        <div id="toolbar" class="toolbar">
+            <div class="toolbar-section">
+                <label for="branch-selector">Branch:</label>
+                <div class="dropdown">
+                    <select id="branch-selector" class="dropdown-select">
+                        <option value="">Loading branches...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="toolbar-section">
+                <label for="commit-selector">Commit:</label>
+                <div class="dropdown">
+                    <select id="commit-selector" class="dropdown-select">
+                        <option value="">Select a commit...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="toolbar-section">
+                <button id="prev-commit" class="nav-button" title="Previous Commit">
+                    <span class="arrow">◀</span> Previous
+                </button>
+                <button id="next-commit" class="nav-button" title="Next Commit">
+                    Next <span class="arrow">▶</span>
+                </button>
+            </div>
+            
+            <div class="toolbar-section url-section">
+                <label for="url-input">URL:</label>
+                <input type="text" id="url-input" class="url-input" placeholder="http://localhost:5173" value="http://localhost:5173">
+                <button id="refresh-btn" class="nav-button" title="Refresh">
+                    <span class="icon">↻</span>
+                </button>
+                <button id="navigate-btn" class="nav-button" title="Navigate">
+                    Go
+                </button>
+            </div>
+            
+            <div class="toolbar-section">
+                <button id="toggle-sidebar" class="nav-button" title="Toggle Sidebar">
+                    <span class="icon">☰</span>
+                </button>
+                <button id="repo-settings" class="nav-button" title="Repository Settings">
+                    <span class="icon">⚙</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div id="content" class="content">
+            <!-- Sidebar -->
+            <div id="sidebar" class="sidebar">
+                <div class="sidebar-header">
+                    <h3>Commit Details</h3>
+                    <button id="close-sidebar" class="close-button" title="Close">×</button>
+                </div>
+                <div id="commit-details" class="commit-details">
+                    <div class="detail-section">
+                        <p class="placeholder">Select a commit to view details</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Webview Container -->
+            <div id="webview-container" class="webview-container">
+                <iframe id="preview-frame" class="preview-frame" src=""></iframe>
+                <div id="loading-overlay" class="loading-overlay hidden">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div id="status-bar" class="status-bar">
+            <span id="status-message" class="status-message">Ready</span>
+            <span id="repo-info" class="repo-info"></span>
+            <span id="connection-status" class="connection-status">
+                <span class="status-indicator"></span>
+                <span class="status-text">Disconnected</span>
+            </span>
+        </div>
+        
+        <!-- Repository Settings Modal -->
+        <div id="repo-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Repository Settings</h2>
+                    <button class="close-button" onclick="closeRepoModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="repo-path">Repository Path:</label>
+                        <input type="text" id="repo-path" class="form-input" placeholder="/path/to/repository">
+                        <button id="set-repo-btn" class="btn-primary">Set Repository</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Repository:</label>
+                        <p id="current-repo" class="info-text">Not set</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Repository Info:</label>
+                        <div id="repo-details" class="repo-details">
+                            <p>No repository loaded</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>

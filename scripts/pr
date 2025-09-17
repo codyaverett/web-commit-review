@@ -1,0 +1,344 @@
+#!/bin/bash
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Default values
+COMMAND=""
+DRY_RUN=false
+
+# Show help
+show_help() {
+    echo "Usage: $0 [COMMAND] [OPTIONS]"
+    echo ""
+    echo "Commands:"
+    echo "  create       Create a new draft PR (default if no command given)"
+    echo "  update       Update existing PR description with latest commits"
+    echo "  status       Show PR status for current branch"
+    echo "  open         Open PR in browser"
+    echo "  help         Show this help message"
+    echo ""
+    echo "Options:"
+    echo "  -d, --dry-run    Show what would be done without making changes"
+    echo "  -h, --help       Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Create a new PR"
+    echo "  $0 create --dry-run   # Preview PR creation"
+    echo "  $0 update             # Update existing PR"
+    echo "  $0 status             # Check PR status"
+    echo "  $0 open               # Open PR in browser"
+}
+
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        create|update|status|open)
+            COMMAND="$1"
+            ;;
+        --dry-run|-d)
+            DRY_RUN=true
+            ;;
+        --help|-h|help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown parameter: $1${NC}"
+            show_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# Default command is create
+if [ -z "$COMMAND" ]; then
+    COMMAND="create"
+fi
+
+# Check if gh CLI is installed (skip for dry-run or status)
+if [ "$DRY_RUN" = false ] && [ "$COMMAND" != "status" ] && ! command -v gh &> /dev/null; then
+    echo -e "${RED}Error: GitHub CLI (gh) is not installed.${NC}"
+    echo "Please install it from: https://cli.github.com/"
+    exit 1
+fi
+
+# Check if we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo -e "${RED}Error: Not in a git repository.${NC}"
+    exit 1
+fi
+
+# Get current branch name
+CURRENT_BRANCH=$(git branch --show-current)
+
+# Check if we're on main branch
+if [ "$CURRENT_BRANCH" = "main" ] && [ "$COMMAND" != "status" ]; then
+    echo -e "${RED}Error: Cannot create/update PR from main branch.${NC}"
+    echo "Please checkout to a feature branch first."
+    exit 1
+fi
+
+# Function to generate PR body
+generate_pr_body() {
+    local COMMIT_COUNT=$(git rev-list --count main..HEAD)
+    
+    # Generate detailed changes with proper formatting
+    local DETAILED_CHANGES=""
+    while IFS= read -r commit_hash; do
+        local subject=$(git log -1 --pretty=format:"%s" $commit_hash)
+        local body=$(git log -1 --pretty=format:"%b" $commit_hash)
+        
+        # Format subject: split on " - " to separate title from description points
+        # First part becomes the header, rest become list items
+        local formatted_subject=$(echo "$subject" | sed 's/ - /\n- /g')
+        DETAILED_CHANGES+="#### $formatted_subject"$'\n'
+        
+        if [ -n "$body" ]; then
+            # Format body: ensure line breaks before lines starting with dash
+            local formatted_body=$(echo "$body" | sed 's/^- /\n- /g' | sed 's/^[[:space:]]\+- /\n- /g')
+            DETAILED_CHANGES+=$'\n'"$formatted_body"$'\n'
+        fi
+        DETAILED_CHANGES+=$'\n'
+    done < <(git rev-list --reverse main..HEAD)
+    
+    # Remove excessive blank lines
+    DETAILED_CHANGES=$(echo "$DETAILED_CHANGES" | sed '/^$/N;/^\n$/d')
+    
+    cat <<EOF
+## Summary
+
+This PR includes $COMMIT_COUNT commit(s) that are not in the main branch.
+
+### Detailed Changes
+
+$DETAILED_CHANGES
+
+### Files Changed
+
+\`\`\`
+$(git diff --stat main...HEAD)
+\`\`\`
+
+---
+*Generated from commits: $(git rev-parse main)..$(git rev-parse --short HEAD)*
+EOF
+}
+
+# Function to update PR body preserving manual edits
+update_pr_body() {
+    local existing_body="$1"
+    local new_generated_content=$(generate_pr_body)
+    
+    # Extract the part before "### Detailed Changes" (user's manual content)
+    local manual_content=$(echo "$existing_body" | sed -n '1,/^### Detailed Changes/p' | sed '$d')
+    
+    # If no "### Detailed Changes" found, check for old "## Summary" pattern
+    if [ -z "$manual_content" ]; then
+        manual_content=$(echo "$existing_body" | sed -n '1,/^## Summary/p' | sed '$d')
+    fi
+    
+    # If still empty, preserve everything before the generated marker
+    if [ -z "$manual_content" ]; then
+        manual_content=$(echo "$existing_body" | sed -n '1,/^\*Generated from commits:/p' | sed '$d')
+    fi
+    
+    # Extract only the generated sections from new content
+    local generated_sections=$(echo "$new_generated_content" | sed -n '/^### Detailed Changes/,$p')
+    
+    # Combine manual content with new generated sections
+    if [ -n "$manual_content" ]; then
+        echo "$manual_content"
+        echo ""
+        echo "$generated_sections"
+    else
+        echo "$new_generated_content"
+    fi
+}
+
+# Function to check if PR exists
+check_pr_exists() {
+    gh pr view --json state 2>/dev/null
+}
+
+# Command: status
+if [ "$COMMAND" = "status" ]; then
+    echo -e "${CYAN}Checking PR status for branch: $CURRENT_BRANCH${NC}"
+    echo ""
+    
+    if check_pr_exists; then
+        gh pr view
+    else
+        echo -e "${YELLOW}No PR exists for branch '$CURRENT_BRANCH'${NC}"
+        echo ""
+        echo "To create a PR, run: $0 create"
+    fi
+    exit 0
+fi
+
+# Command: open
+if [ "$COMMAND" = "open" ]; then
+    echo -e "${CYAN}Opening PR in browser...${NC}"
+    
+    if check_pr_exists; then
+        gh pr view --web
+    else
+        echo -e "${RED}No PR exists for branch '$CURRENT_BRANCH'${NC}"
+        echo "To create a PR, run: $0 create"
+        exit 1
+    fi
+    exit 0
+fi
+
+# Command: update
+if [ "$COMMAND" = "update" ]; then
+    echo -e "${CYAN}Updating PR for branch: $CURRENT_BRANCH${NC}"
+    
+    # Check if PR exists
+    if ! check_pr_exists; then
+        echo -e "${RED}No PR exists for branch '$CURRENT_BRANCH'${NC}"
+        echo "To create a PR, run: $0 create"
+        exit 1
+    fi
+    
+    # Get existing PR details
+    PR_NUMBER=$(gh pr view --json number -q '.number')
+    EXISTING_TITLE=$(gh pr view --json title -q '.title')
+    EXISTING_BODY=$(gh pr view --json body -q '.body')
+    
+    echo -e "${GREEN}Found PR #$PR_NUMBER${NC}"
+    
+    # Generate updated body preserving manual edits
+    UPDATED_BODY=$(update_pr_body "$EXISTING_BODY")
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}========== DRY-RUN MODE ==========${NC}"
+        echo -e "${YELLOW}Would update PR #$PR_NUMBER with:${NC}"
+        echo ""
+        echo -e "${GREEN}Title:${NC} $EXISTING_TITLE (unchanged)"
+        echo ""
+        echo -e "${GREEN}Updated Body:${NC}"
+        echo "----------------------------------------"
+        printf "%b\n" "$UPDATED_BODY"
+        echo "----------------------------------------"
+        echo ""
+        echo -e "${YELLOW}[DRY-RUN] No changes were made. Remove --dry-run flag to update the PR.${NC}"
+        exit 0
+    fi
+    
+    # Update the PR
+    echo -e "${GREEN}Updating PR description...${NC}"
+    gh pr edit "$PR_NUMBER" --body "$UPDATED_BODY"
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ PR #$PR_NUMBER updated successfully!${NC}"
+        echo ""
+        read -p "Do you want to open the PR in your browser? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            gh pr view --web
+        fi
+    else
+        echo -e "${RED}Failed to update PR.${NC}"
+        exit 1
+    fi
+    exit 0
+fi
+
+# Command: create (default)
+if [ "$COMMAND" = "create" ]; then
+    # Check if PR already exists
+    if check_pr_exists; then
+        echo -e "${YELLOW}A PR already exists for branch '$CURRENT_BRANCH'${NC}"
+        echo ""
+        gh pr view
+        echo ""
+        echo "To update it, run: $0 update"
+        echo "To open in browser, run: $0 open"
+        exit 0
+    fi
+    
+    # Check if current branch exists on remote (skip push for dry-run)
+    if ! git ls-remote --heads origin "$CURRENT_BRANCH" | grep -q "$CURRENT_BRANCH"; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${YELLOW}[DRY-RUN] Branch '$CURRENT_BRANCH' doesn't exist on remote. Would push to origin.${NC}"
+        else
+            echo -e "${YELLOW}Branch '$CURRENT_BRANCH' doesn't exist on remote. Pushing...${NC}"
+            git push -u origin "$CURRENT_BRANCH"
+        fi
+    fi
+    
+    # Generate PR title from branch name
+    # Convert branch name to human-readable title
+    # e.g., feat/paginator-ux -> feat: paginator ux -> Feat: Paginator Ux
+    # e.g., fix/bug-123 -> fix: bug 123 -> Fix: Bug 123
+    # e.g., feature/add-new-component -> feature: add new component -> Feature: Add New Component
+    
+    # First, replace / with : and - with spaces
+    PR_TITLE=$(echo "$CURRENT_BRANCH" | sed 's|/|: |' | sed 's/-/ /g')
+    
+    # Then capitalize each word using awk
+    PR_TITLE=$(echo "$PR_TITLE" | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1')
+    
+    # Generate PR body
+    echo -e "${GREEN}Generating PR description from commits not in main branch...${NC}"
+    
+    # Count commits that will be included
+    COMMIT_COUNT=$(git rev-list --count main..HEAD)
+    echo -e "${YELLOW}Found $COMMIT_COUNT commit(s) not in main${NC}"
+    
+    PR_BODY=$(generate_pr_body)
+    
+    # Display PR information
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}========== DRY-RUN MODE ==========${NC}"
+        echo -e "${YELLOW}The following PR would be created:${NC}"
+        echo ""
+    fi
+    
+    echo -e "${GREEN}PR Details:${NC}"
+    echo -e "  ${BLUE}Title:${NC} $PR_TITLE"
+    echo -e "  ${BLUE}Base:${NC} main"
+    echo -e "  ${BLUE}Head:${NC} $CURRENT_BRANCH"
+    echo -e "  ${BLUE}Mode:${NC} Draft"
+    echo ""
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${GREEN}PR Body:${NC}"
+        echo "----------------------------------------"
+        printf "%b\n" "$PR_BODY"
+        echo "----------------------------------------"
+        echo ""
+        echo -e "${YELLOW}[DRY-RUN] No PR was created. Remove --dry-run flag to create the PR.${NC}"
+        exit 0
+    fi
+    
+    # Create PR using gh CLI
+    echo -e "${GREEN}Creating draft PR...${NC}"
+    gh pr create \
+        --base main \
+        --head "$CURRENT_BRANCH" \
+        --title "$PR_TITLE" \
+        --body "$PR_BODY" \
+        --draft
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ Draft PR created successfully!${NC}"
+        
+        # Optionally open the PR in browser
+        read -p "Do you want to open the PR in your browser? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            gh pr view --web
+        fi
+    else
+        echo -e "${RED}Failed to create PR.${NC}"
+        exit 1
+    fi
+fi

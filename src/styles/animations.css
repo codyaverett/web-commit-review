@@ -1,0 +1,313 @@
+/* Global animations and transitions */
+
+/* Reset body margin and prevent horizontal scroll */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+html {
+    overflow-x: hidden;
+}
+
+/* Fade transitions */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+/* Slide transitions */
+.slide-enter-active,
+.slide-leave-active {
+    transition: all 0.3s ease;
+}
+
+.slide-enter-from {
+    transform: translateX(-20px);
+    opacity: 0;
+}
+
+.slide-leave-to {
+    transform: translateX(20px);
+    opacity: 0;
+}
+
+/* Slide up transitions */
+.slide-up-enter-active,
+.slide-up-leave-active {
+    transition: all 0.3s ease;
+}
+
+.slide-up-enter-from {
+    transform: translateY(20px);
+    opacity: 0;
+}
+
+.slide-up-leave-to {
+    transform: translateY(-20px);
+    opacity: 0;
+}
+
+/* Scale transitions */
+.scale-enter-active,
+.scale-leave-active {
+    transition: all 0.2s ease;
+}
+
+.scale-enter-from,
+.scale-leave-to {
+    transform: scale(0.9);
+    opacity: 0;
+}
+
+/* List transitions */
+.list-enter-active,
+.list-leave-active {
+    transition: all 0.3s ease;
+}
+
+.list-enter-from {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.list-leave-to {
+    opacity: 0;
+    transform: translateY(-30px);
+}
+
+/* Stagger list items */
+.list-move {
+    transition: transform 0.3s ease;
+}
+
+/* Button hover animations */
+.p-button {
+    transition: all 0.2s ease;
+}
+
+.p-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.p-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Card hover animations */
+.surface-card {
+    transition: all 0.3s ease;
+}
+
+.surface-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Input focus animations */
+.p-inputtext,
+.p-dropdown,
+.p-multiselect,
+.p-textarea,
+.p-chips {
+    transition: all 0.2s ease;
+}
+
+.p-inputtext:focus,
+.p-dropdown:focus,
+.p-multiselect:focus,
+.p-textarea:focus,
+.p-chips:focus-within {
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.2);
+}
+
+/* Tag animations */
+.p-tag {
+    animation: fadeIn 0.3s ease;
+    transition: all 0.2s ease;
+}
+
+.p-tag:hover {
+    transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Progress bar animation */
+.p-progressbar-value {
+    transition: width 0.5s ease;
+}
+
+/* Skeleton pulse animation */
+.p-skeleton {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Modal/Dialog animations */
+.p-dialog-enter-active {
+    transition: all 0.3s ease-out;
+}
+
+.p-dialog-leave-active {
+    transition: all 0.2s ease-in;
+}
+
+.p-dialog-enter-from {
+    opacity: 0;
+    transform: scale(0.7);
+}
+
+.p-dialog-leave-to {
+    opacity: 0;
+    transform: scale(0.7);
+}
+
+/* Tooltip animations */
+.p-tooltip {
+    animation: tooltipIn 0.2s ease;
+}
+
+@keyframes tooltipIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* DataTable row animations */
+.p-datatable-tbody > tr {
+    transition: all 0.2s ease;
+}
+
+.p-datatable-tbody > tr:hover {
+    background-color: rgba(var(--primary-color-rgb), 0.05);
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Page transition animations */
+.page-enter-active,
+.page-leave-active {
+    transition: all 0.3s ease;
+}
+
+.page-enter-from {
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.page-leave-to {
+    opacity: 0;
+    transform: translateX(10px);
+}
+
+/* Bounce animation for notifications */
+@keyframes bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    25% {
+        transform: translateY(-10px);
+    }
+    75% {
+        transform: translateY(5px);
+    }
+}
+
+.bounce {
+    animation: bounce 0.5s ease;
+}
+
+/* Spin animation for loading */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Shake animation for errors */
+@keyframes shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-5px);
+    }
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(5px);
+    }
+}
+
+.shake {
+    animation: shake 0.5s ease;
+}
+
+/* Glow effect for focus */
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.8);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.5);
+    }
+}
+
+.glow {
+    animation: glow 2s ease-in-out infinite;
+}

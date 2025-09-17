@@ -287,11 +287,11 @@ class GitReviewTool {
       
       if (data.success) {
         this.currentCommit = hash;
-        this.updateStatus(`Checked out commit ${hash.substring(0, 7)}`);
+        this.updateStatus(`Moved to commit ${hash.substring(0, 7)}`);
         await this.loadCommitDetails(hash);
         this.refreshPreview();
       } else {
-        this.showError(data.error || 'Failed to checkout commit');
+        this.showError(data.error || 'Failed to move to commit');
       }
       
       this.showLoading(false);
@@ -378,7 +378,8 @@ class GitReviewTool {
         await this.loadCommitDetails(data.commit.hash);
         this.refreshPreview();
       } else {
-        this.updateStatus(data.message || `No ${direction} commit available`);
+        // Use the specific message from the server for better accuracy
+        this.updateStatus(data.message || `Cannot navigate ${direction}`);
       }
       
       this.showLoading(false);

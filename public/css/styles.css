@@ -146,17 +146,20 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 0;
+  width: 350px;
   background-color: #252525;
   border-right: 1px solid #3e3e3e;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.3s ease;
+  position: relative;
+  margin-left: -350px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
 
 .sidebar.visible {
-  width: 350px;
+  margin-left: 0;
 }
 
 .sidebar-header {
@@ -301,6 +304,7 @@ body {
   flex: 1;
   position: relative;
   background-color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .preview-frame {

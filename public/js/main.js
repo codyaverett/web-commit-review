@@ -185,18 +185,7 @@ class GitReviewTool {
       this.branches = data.all;
       this.currentBranch = data.current;
       
-      const selector = document.getElementById('branch-selector');
-      selector.innerHTML = '';
-      
-      data.all.forEach(branch => {
-        const option = document.createElement('option');
-        option.value = branch;
-        option.textContent = branch;
-        if (branch === data.current) {
-          option.selected = true;
-        }
-        selector.appendChild(option);
-      });
+      this.updateBranchDropdown(data.current, data.all);
       
       await this.loadCommits();
       this.showLoading(false);
@@ -204,6 +193,52 @@ class GitReviewTool {
       console.error('Error loading branches:', error);
       this.updateStatus('Failed to load branches');
       this.showLoading(false);
+    }
+  }
+  
+  updateBranchDropdown(currentBranch, allBranches) {
+    const selector = document.getElementById('branch-selector');
+    selector.innerHTML = '';
+    
+    // Check if in detached HEAD state
+    const isDetached = !currentBranch || currentBranch === 'HEAD';
+    
+    if (isDetached) {
+      // Add a placeholder option for detached HEAD
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Detached HEAD';
+      option.selected = true;
+      option.disabled = true;
+      selector.appendChild(option);
+      
+      // Update repo info to show detached state
+      this.updateRepoInfo('Detached HEAD');
+    } else {
+      this.updateRepoInfo(`Branch: ${currentBranch}`);
+    }
+    
+    // Add all branches
+    allBranches.forEach(branch => {
+      const option = document.createElement('option');
+      option.value = branch;
+      option.textContent = branch;
+      if (!isDetached && branch === currentBranch) {
+        option.selected = true;
+      }
+      selector.appendChild(option);
+    });
+  }
+  
+  async updateDetachedHeadState() {
+    try {
+      const response = await fetch('/api/branches');
+      const data = await response.json();
+      
+      this.currentBranch = data.current;
+      this.updateBranchDropdown(data.current, data.all);
+    } catch (error) {
+      console.error('Error checking branch state:', error);
     }
   }
   
@@ -289,6 +324,8 @@ class GitReviewTool {
         this.currentCommit = hash;
         this.updateStatus(`Moved to commit ${hash.substring(0, 7)}`);
         await this.loadCommitDetails(hash);
+        // Update branch dropdown to show detached HEAD state
+        await this.updateDetachedHeadState();
         this.refreshPreview();
       } else {
         this.showError(data.error || 'Failed to move to commit');
@@ -354,40 +391,42 @@ class GitReviewTool {
     }
   }
   
-  async navigateCommit(direction) {
-    try {
-      this.showLoading(true);
-      this.updateStatus(`Navigating to ${direction} commit...`);
-      
-      const response = await fetch('/api/navigate-commit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success && data.commit) {
-        this.currentCommit = data.commit.hash;
-        this.updateStatus(`Navigated to commit ${data.commit.hash.substring(0, 7)}`);
-        
-        // Update commit selector
-        const selector = document.getElementById('commit-selector');
-        selector.value = data.commit.hash;
-        
-        await this.loadCommitDetails(data.commit.hash);
-        this.refreshPreview();
-      } else {
-        // Use the specific message from the server for better accuracy
-        this.updateStatus(data.message || `Cannot navigate ${direction}`);
-      }
-      
-      this.showLoading(false);
-    } catch (error) {
-      console.error('Error navigating commits:', error);
-      this.showError('Failed to navigate commits');
-      this.showLoading(false);
+  navigateCommit(direction) {
+    // Find current commit index in the commits array
+    const currentIndex = this.commits.findIndex(commit => commit.hash === this.currentCommit);
+    
+    if (currentIndex === -1) {
+      this.updateStatus('No commit selected');
+      return;
     }
+    
+    let newIndex;
+    if (direction === 'prev') {
+      // Previous means older commit (higher index in the array)
+      newIndex = currentIndex + 1;
+      if (newIndex >= this.commits.length) {
+        this.updateStatus('Already at oldest commit');
+        return;
+      }
+    } else if (direction === 'next') {
+      // Next means newer commit (lower index in the array)
+      newIndex = currentIndex - 1;
+      if (newIndex < 0) {
+        this.updateStatus('Already at newest commit');
+        return;
+      }
+    }
+    
+    // Update to the new commit
+    const newCommit = this.commits[newIndex];
+    this.currentCommit = newCommit.hash;
+    
+    // Update commit selector dropdown
+    const selector = document.getElementById('commit-selector');
+    selector.value = newCommit.hash;
+    
+    // Trigger the change event to load the commit
+    this.checkoutCommit(newCommit.hash);
   }
   
   refreshPreview() {

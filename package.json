@@ -1,6 +1,6 @@
 {
   "name": "@starpower/web-commit-review",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A web-based git commit review tool for browsing branches and commits",
   "main": "lib/server.js",
   "type": "module",

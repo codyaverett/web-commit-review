@@ -1,3 +1,2 @@
 # Files to skip during commit traversal
-electron/toolbar.html
-electron/main.cjs
+# Add any files you want to exclude from commit traversal here

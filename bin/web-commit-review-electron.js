@@ -48,8 +48,30 @@ if (options.browser) {
     process.exit(code);
   });
 } else {
-  // Use Electron
-  const electronPath = path.join(__dirname, '..', 'node_modules', '.bin', 'electron');
+  // Use Electron - try to find it in multiple locations
+  let electronPath;
+  const possiblePaths = [
+    path.join(__dirname, '..', 'node_modules', '.bin', 'electron'),
+    path.join(__dirname, '..', 'node_modules', 'electron', 'cli.js'),
+    'electron' // fallback to global electron if available
+  ];
+  
+  for (const ePath of possiblePaths) {
+    try {
+      if (ePath === 'electron' || (await fs.access(ePath).then(() => true).catch(() => false))) {
+        electronPath = ePath;
+        break;
+      }
+    } catch (e) {
+      // continue to next path
+    }
+  }
+  
+  if (!electronPath) {
+    console.error(chalk.red('✗'), 'Could not find Electron. Please ensure it is installed.');
+    process.exit(1);
+  }
+  
   const mainPath = path.join(__dirname, '..', 'lib', 'electron-main.js');
   
   // Prepare arguments for Electron

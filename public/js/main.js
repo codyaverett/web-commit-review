@@ -93,10 +93,10 @@ class GitReviewTool {
       this.closeSidebar();
     });
     
-    // Repository settings
-    document.getElementById('repo-settings').addEventListener('click', () => {
-      this.openRepoModal();
-    });
+    // Repository settings - commented out as button was removed
+    // document.getElementById('repo-settings').addEventListener('click', () => {
+    //   this.openRepoModal();
+    // });
     
     document.getElementById('set-repo-btn').addEventListener('click', () => {
       this.setRepository();
